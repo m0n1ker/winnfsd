@@ -676,6 +676,7 @@ nfsstat3 CNFS3Prog::ProcedureREAD(void)
     opaque data;
     nfsstat3 stat;
     FILE *pFile;
+    unsigned char *buf;
 
     PrintLog("READ");
     bool validHandle = GetPath(path);
@@ -685,14 +686,19 @@ nfsstat3 CNFS3Prog::ProcedureREAD(void)
     stat = CheckFile(cStr);
 
     if (stat == NFS3_OK) {
-        data.SetSize(count);
         pFile = _fsopen(cStr, "rb", _SH_DENYWR);
 
         if (pFile != NULL) {
+            buf = new unsigned char[count];
+
             _fseeki64(pFile, offset, SEEK_SET) ;
-            count = fread(data.contents, sizeof(char), count, pFile);
+            count = fread(buf, sizeof(char), count, pFile);
             eof = fgetc(pFile) == EOF;
             fclose(pFile);
+
+            data.SetSize(count);
+            memcpy(data.contents, buf, count);
+            delete[] buf;
         } else {
             char buffer[BUFFER_SIZE];
             errno_t errorNumber = errno;
